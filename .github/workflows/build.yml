@@ -59,6 +59,8 @@ jobs:
       - name: Push To GHCR
         uses: redhat-actions/push-to-registry@v2
         id: push
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
         with:
           image: ${{ steps.build.outputs.image }}
           tags: ${{ steps.build.outputs.tags }}
@@ -67,7 +69,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ github.token }}
           extra-args: |
-            --sign-by-sigstore=sigstore.yaml
+            --sign-by-sigstore=env://SIGNING_KEY
 
       - name: Cleanup old images
         uses: actions/delete-package-versions@v5
@@ -75,3 +77,4 @@ jobs:
           package-name: ${{ matrix.image }}
           package-type: container
           min-versions-to-keep: 60
+
