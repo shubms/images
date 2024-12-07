@@ -16,6 +16,9 @@ on:
 jobs:
   build-push-image:
     runs-on: ubuntu-24.04
+    container:
+      image: quay.io/containers/aio
+      options: --privileged
 
     permissions:
       contents: read
@@ -39,7 +42,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.local/share/containers
-          key: podman
+          key: ${{ matrix.image }}
 
       - name: Buildah image
         uses: redhat-actions/buildah-build@v2
@@ -50,7 +53,7 @@ jobs:
           containerfiles: |
             ${{ matrix.file }}
           context: .
-          # oci: true
+          oci: true
           layers: true
 
       - name: Push To GHCR
@@ -59,11 +62,12 @@ jobs:
         with:
           image: ${{ steps.build.outputs.image }}
           tags: ${{ steps.build.outputs.tags }}
-          registry: ${{ env.REGISTRY }}/${{ github.repository_owner }}
+          registry: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}
           username: ${{ github.repository_owner }}
           password: ${{ github.token }}
-          # extra-args: |
-            # --sign-by-sigstore=.github/sigstore.yaml
+          extra-args: |
+            --sign-by-sigstore=sigstore.yaml
 
       - name: Cleanup old images
         uses: actions/delete-package-versions@v5

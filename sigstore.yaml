@@ -1,0 +1,6 @@
+fulcio:
+  fulcioURL: "https://fulcio.sigstore.dev"
+  oidcMode: "interactive"
+  oidcIssuerURL: "https://token.actions.githubusercontent.com"
+  oidcClientID: "sigstore"
+rekorURL: "https://rekor.sigstore.dev"
