@@ -16,9 +16,6 @@ on:
 jobs:
   build-push-image:
     runs-on: ubuntu-24.04
-    container:
-      image: quay.io/containers/aio
-      options: --privileged
 
     permissions:
       contents: read
@@ -56,20 +53,20 @@ jobs:
           oci: true
           layers: true
 
-      - name: Push To GHCR
-        uses: redhat-actions/push-to-registry@v2
-        id: push
-        env:
-          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-        with:
-          image: ${{ steps.build.outputs.image }}
-          tags: ${{ steps.build.outputs.tags }}
-          registry: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}
-          username: ${{ github.repository_owner }}
-          password: ${{ github.token }}
-          extra-args: |
-            --sign-by-sigstore=env://SIGNING_KEY
+      # - name: Push To GHCR
+      #   uses: redhat-actions/push-to-registry@v2
+      #   id: push
+      #   env:
+      #     SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+      #   with:
+      #     image: ${{ steps.build.outputs.image }}
+      #     tags: ${{ steps.build.outputs.tags }}
+      #     registry: |
+      #       ${{ env.REGISTRY }}/${{ github.repository_owner }}
+      #     username: ${{ github.repository_owner }}
+      #     password: ${{ github.token }}
+      #     extra-args: |
+      #       --sign-by-sigstore=env://SIGNING_KEY
 
       - name: Cleanup old images
         uses: actions/delete-package-versions@v5
