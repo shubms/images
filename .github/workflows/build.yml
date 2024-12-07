@@ -1,0 +1,73 @@
+name: Publish and Sign Container Image
+
+env:
+  REGISTRY: ghcr.io
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/build.yml
+      - "**/Containerfile"
+  # schedule:
+  # - cron: "17 07 * * 0"
+
+jobs:
+  build-push-image:
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: spotify-distrobox
+            file: distroboxes/spotify/Containerfile
+          - image: steam-distrobox
+            file: distroboxes/steam/Containerfile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache podman
+        uses: actions/cache@v3
+        with:
+          path: ~/.local/share/containers
+          key: podman
+
+      - name: Buildah image
+        uses: redhat-actions/buildah-build@v2
+        id: build
+        with:
+          image: ${{ matrix.image }}
+          tags: latest ${{ github.sha }}
+          containerfiles: |
+            ${{ matrix.file }}
+          context: .
+          # oci: true
+          layers: true
+
+      - name: Push To GHCR
+        uses: redhat-actions/push-to-registry@v2
+        id: push
+        with:
+          image: ${{ steps.build.outputs.image }}
+          tags: ${{ steps.build.outputs.tags }}
+          registry: ${{ env.REGISTRY }}/${{ github.repository_owner }}
+          username: ${{ github.repository_owner }}
+          password: ${{ github.token }}
+          # extra-args: |
+            # --sign-by-sigstore=.github/sigstore.yaml
+
+      - name: Cleanup old images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ matrix.image }}
+          package-type: container
+          min-versions-to-keep: 60
