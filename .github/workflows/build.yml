@@ -48,7 +48,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
           tags: |
             latest
             type=sha,format=long
@@ -82,8 +82,15 @@ jobs:
             c86c21ea-98cf-4ca9-b730-b2400146a3a5 > COSIGN_PASSWORD
 
       - name: Sign the container image
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build-push.outputs.digest }}
         run: |
-          cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image }}@${{ steps.build-push.outputs.digest }} ${{ steps.meta.outputs.tags }}
+          images=""
+          for tag in ${TAGS}; do
+            images+="${tag}@${DIGEST} "
+          done
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${images}
 
       - name: Cleanup old images
         uses: actions/delete-package-versions@v5
