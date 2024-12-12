@@ -5,10 +5,16 @@ LABEL com.github.containers.toolbox="true" \
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN curl -sS https://download.spotify.com/debian/pubkey_6224F9941A8AA6D1.gpg | \
+RUN apt-get update && \
+    apt-get -y upgrade && \
+    apt-get -y install \
+    curl gnupg2 && \
+    rm -rd /var/lib/apt/lists/* && \
+    curl -sS https://download.spotify.com/debian/pubkey_6224F9941A8AA6D1.gpg | \
     gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/spotify.gpg && \
     echo "deb http://repository.spotify.com stable non-free" | \
     tee /etc/apt/sources.list.d/spotify.list && \
+    mkdir -p /usr/share/applications /usr/share/icons && \
     ln -sf /usr/share/spotify/spotify.desktop /usr/share/applications/spotify.desktop && \
     ln -sf /usr/share/spotify/icons/spotify_icon.ico /usr/share/icons/spotify.ico
 

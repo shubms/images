@@ -90,6 +90,7 @@ jobs:
           for tag in ${TAGS}; do
             images+="${tag}@${DIGEST} "
           done
+          cosign sign --yes ${images}
           cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${images}
 
       - name: Cleanup old images
@@ -97,4 +98,4 @@ jobs:
         with:
           package-name: ${{ matrix.image }}
           package-type: container
-          min-versions-to-keep: 60
+          min-versions-to-keep: 30
