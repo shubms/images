@@ -1,0 +1,35 @@
+# syncthing.container
+[Unit]
+Description=Syncthing (Container) - Open Source Continuous File Synchronization
+Documentation=https://docs.syncthing.net/
+StartLimitIntervalSec=60
+StartLimitBurst=4
+
+# Hardening
+# SystemCallArchitectures=native
+# MemoryDenyWriteExecute=true
+# NoNewPrivileges=true
+
+[Container]
+AutoUpdate=registry
+ContainerName=syncthing
+Environment=STGUIADDRESS=localhost:8384
+HostName=%H
+Image=ghcr.io/shubms/syncthing:latest
+Network=host
+SecurityLabelDisable=true
+UserNS=keep-id
+Volume=syncthing:/var/syncthing
+Volume=%h/Documents:/var/syncthing/documents:ro
+Volume=%h/Music:/var/syncthing/music:ro
+Volume=%h/.media/renpy:/var/syncthing/renpy
+Volume=%h/.media/android/media:/var/syncthing/media
+Volume=%h/.media/android/dcim:/var/syncthing/dcim
+Volume=%h/.media/rpgm:/var/syncthing/rpgm
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

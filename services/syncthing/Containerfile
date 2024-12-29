@@ -1,0 +1,31 @@
+FROM docker.io/library/golang:latest AS builder
+
+WORKDIR /src
+COPY src/ .
+RUN go run build.go -no-upgrade build syncthing
+
+FROM alpine
+
+LABEL org.opencontainers.image.authors="The Syncthing Project" \
+      org.opencontainers.image.url="https://syncthing.net" \
+      org.opencontainers.image.documentation="https://docs.syncthing.net" \
+      org.opencontainers.image.source="https://github.com/syncthing/syncthing" \
+      org.opencontainers.image.vendor="The Syncthing Project" \
+      org.opencontainers.image.licenses="MPL-2.0" \
+      org.opencontainers.image.title="Syncthing"
+
+EXPOSE 8384 22000/tcp 22000/udp 21027/udp
+
+VOLUME ["/var/syncthing"]
+
+RUN apk add --no-cache ca-certificates curl libcap su-exec tzdata
+
+COPY --from=builder /src/syncthing /bin/syncthing
+COPY --from=builder /src/script/docker-entrypoint.sh /bin/entrypoint.sh
+
+ENV PUID=1000 PGID=1000 HOME=/var/syncthing
+
+ENV STGUIADDRESS=0.0.0.0:8384
+ENV STHOMEDIR=/var/syncthing/config
+RUN chmod 755 /bin/entrypoint.sh
+ENTRYPOINT ["/bin/entrypoint.sh", "/bin/syncthing"]
