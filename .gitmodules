@@ -1,3 +1,6 @@
 [submodule "syncthing"]
 	path = services/syncthing/src
 	url = https://github.com/syncthing/syncthing.git
+[submodule "aria2"]
+	path = services/aria2/src
+	url = https://github.com/aria2/aria2.git

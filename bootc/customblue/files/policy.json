@@ -1,0 +1,17 @@
+{
+    "default": [
+        {
+            "type": "reject"
+        }
+    ],
+    "transports": {
+        "docker": {
+            "ghcr.io/shubms": [
+                {
+                    "type": "sigstoreSigned",
+                    "keyData": "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFTFpRWTJjUHNVSjArR1hDL3U5R0pmS2laOHNOWgo4aWRtVUdodm5zVG01RGpPM0hGWHVlZWZOWnVEWjE2M2t1alBmR2tGdVEra1IxL0tYWVZYRWhuOWtBPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg=="
+                }
+            ]
+        }
+    }
+}

@@ -1,7 +1,10 @@
-name: Publish and Sign Container Images
+name: Build, Publish and Sign Container Images
 
 env:
   REGISTRY: ghcr.io
+  REPO: ${{ github.repository_owner }}
+  TOKEN: ${{ github.token }}
+  SECRETS_DIR: /run/secrets
 
 on:
   push:
@@ -9,13 +12,14 @@ on:
       - main
     paths:
       - .github/workflows/build.yml
-      - "**/Dockerfile"
+      - "**/Containerfile"
   schedule:
-    - cron: "17 17 * * 0"
+    - cron: "17 17 * * *"
+  workflow_dispatch:
 
 jobs:
-  build-push-image:
-    runs-on: ubuntu-24.04
+  build:
+    runs-on: ubuntu-latest
 
     permissions:
       contents: read
@@ -26,72 +30,81 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: spotify-distrobox
-            file: distroboxes/spotify/Dockerfile
-          - image: steam-distrobox
-            file: distroboxes/steam/Dockerfile
+          - image: custom-blue
+            dir: bootc/customblue
+          # - image: custom-box
+          #   dir: boxes/custom
+          # - image: comfy-box
+          #   dir: boxes/comfy
+          # - image: spotify-box
+          #   dir: boxes/spotify
+          # - image: steam-box
+          #   dir: boxes/steam
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Write registries.d to enable sigstore attachments
+        run: |
+          sudo mkdir --parents /etc/containers/registries.d/
+          sudo cp bootc/customblue/files/ghcr.io.yaml /etc/containers/registries.d/
 
-      - name: Install cosign
-        uses: sigstore/cosign-installer@v3
-        with:
-          cosign-release: "v2.4.1"
-
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
+            ${{ env.REGISTRY }}/${{ env.REPO }}/${{ matrix.image }}
           tags: |
             latest
             type=sha,format=long
             type=schedule,pattern={{date 'YYYYMMDD'}}
 
       - name: Log into ${{ env.REGISTRY }}
-        uses: docker/login-action@v3
+        uses: redhat-actions/podman-login@v1
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.repository_owner }}
-          password: ${{ github.token }}
+          username: ${{ env.REPO }}
+          password: ${{ env.TOKEN }}
 
-      - name: Build and push container image
-        id: build-push
-        uses: docker/build-push-action@v6
+      - name: Buildah image
+        id: buildah
+        uses: redhat-actions/buildah-build@v2
         with:
-          push: true
-          file: ${{ matrix.file }}
+          containerfiles: ${{ matrix.dir }}/Containerfile
+          context: ${{ matrix.dir }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Get Secrets
         uses: bitwarden/sm-action@v2
         with:
           access_token: ${{ secrets.BWS_TOKEN }}
-          base_url: https://vault.bitwarden.eu
+          cloud_region: eu
+          # base_url: https://vault.bitwarden.eu
           secrets: |
             3200b4c5-5543-4f22-83b2-b24000e08512 > COSIGN_PRIVATE_KEY
             c86c21ea-98cf-4ca9-b730-b2400146a3a5 > COSIGN_PASSWORD
 
-      - name: Sign the container image
-        env:
-          TAGS: ${{ steps.meta.outputs.tags }}
-          DIGEST: ${{ steps.build-push.outputs.digest }}
+      - name: Write secrets
         run: |
-          images=""
-          for tag in ${TAGS}; do
-            images+="${tag}@${DIGEST} "
-          done
-          cosign sign --yes ${images}
-          cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${images}
+          sudo mkdir ${{ env.SECRETS_DIR }};
+          echo "$COSIGN_PRIVATE_KEY" | sudo tee ${{ env.SECRETS_DIR }}/key;
+          echo "$COSIGN_PASSWORD" | sudo tee ${{ env.SECRETS_DIR }}/pass;
+
+      - name: Push To ${{ env.REGISTRY }}
+        id: push-to-quay
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.buildah.outputs.image }}
+          tags: ${{ steps.buildah.outputs.tags }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.REPO }}
+          password: ${{ env.TOKEN }}
+          extra-args: |
+            --sign-by-sigstore-private-key=${{ env.SECRETS_DIR }}/key
+            --sign-passphrase-file=${{ env.SECRETS_DIR }}/pass
 
       - name: Cleanup old images
         uses: actions/delete-package-versions@v5
