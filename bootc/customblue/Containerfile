@@ -10,6 +10,7 @@ RUN sed -i 's/enabled = no/enabled = yes/' /usr/lib/ostree/prepare-root.conf && 
 
 RUN dnf -y install \
 	code \
+	fastfetch \
 	helix \
 	nu \
 	tailscale \

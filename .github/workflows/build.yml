@@ -28,12 +28,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: custom-box
-            file: boxes/custom/Containerfile
-          - image: spotify-box
-            file: boxes/spotify/Containerfile
-          - image: steam-box
-            file: boxes/steam/Containerfile
+          - image: custom-blue
+            file: bootc/customblue/Containerfile
+          # - image: custom-box
+          #   file: boxes/custom/Containerfile
+          # - image: spotify-box
+          #   file: boxes/spotify/Containerfile
+          # - image: steam-box
+          #   file: boxes/steam/Containerfile
 
     steps:
       - name: Checkout repository
@@ -77,9 +79,8 @@ jobs:
 
       - name: Write secrets
         run: |
-          export SECRETS_DIR="$(mktemp --directory)";
-          echo "$COSIGN_PRIVATE_KEY" | tee $SECRET_DIR/key;
-          echo "$COSIGN_PASSWORD" | tee $SECRET_DIR/pass;
+          echo "$COSIGN_PRIVATE_KEY" > $XDG_RUNTIME_DIR/key;
+          echo "$COSIGN_PASSWORD" > $XDG_RUNTIME_DIR/pass;
 
       - name: Push To ${{ env.REGISTRY }}
         id: push-to-quay
@@ -91,8 +92,8 @@ jobs:
           username: ${{ env.REPO }}
           password: ${{ env.TOKEN }}
           extra-args: |
-            --sign-by-sigstore-private-key=$SECRET_DIR/key
-            --sign-passphrase-file=$SECRET_DIR/pass
+            --sign-by-sigstore-private-key=$XDG_RUNTIME_DIR/key
+            --sign-passphrase-file=$XDG_RUNTIME_DIR/pass
 
       - name: Cleanup old images
         uses: actions/delete-package-versions@v5
