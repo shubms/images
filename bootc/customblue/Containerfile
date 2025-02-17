@@ -1,0 +1,21 @@
+FROM quay.io/fedora/fedora-silverblue:41
+
+COPY --chown=root:root --chmod=644 files/tailscale.gpg files/tailscale.repo files/vscode.gpg files/vscode.repo /tmp/
+
+RUN sed -i 's/enabled = no/enabled = yes/' /usr/lib/ostree/prepare-root.conf && \
+	rpm --import /tmp/tailscale.gpg /tmp/vscode.gpg && \
+	dnf config-manager addrepo --from-repofile=/tmp/tailscale.repo && \
+	dnf config-manager addrepo --from-repofile=/tmp/vscode.repo && \
+	rm -f /tmp/tailscale.gpg /tmp/tailscale.repo /tmp/vscode.gpg /tmp/vscode.repo
+
+RUN dnf -y install \
+	code \
+	helix \
+	nu \
+	tailscale \
+	&& \
+    dnf clean all && \
+    systemctl enable tailscaled && \
+    ostree container commit
+
+RUN bootc container lint

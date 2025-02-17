@@ -1,0 +1,14 @@
+FROM ghcr.io/archlinux/archlinux:latest
+
+LABEL com.github.containers.toolbox="true" \
+    name="comfy-container"
+
+RUN pacman -Syu --noconfirm \
+    # Distrobox default packages
+    bash-completion bc glibc-locales inetutils lsof man-db man-pages mtr nss-mdns openssh pigz rsync tcpdump time traceroute tree unzip vte-common vulkan-intel vulkan-radeon wget words xorg-xauth zip \
+    # pytorch and ROCm
+    python-pytorch-opt-rocm python-torchvision && \
+    pacman -Sc --noconfirm
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git /comfy
+
+VOLUME /comfy/models /comfy/output /var/home
