@@ -95,8 +95,8 @@ jobs:
           username: ${{ env.REPO }}
           password: ${{ env.TOKEN }}
           extra-args: |
-            --sign-by-sigstore-private-key=$SECRETS_DIR/key
-            --sign-passphrase-file=$SECRETS_DIR/pass
+            --sign-by-sigstore-private-key=/run/secrets/key
+            --sign-passphrase-file=/run/secrets/pass
 
       - name: Cleanup old images
         uses: actions/delete-package-versions@v5
