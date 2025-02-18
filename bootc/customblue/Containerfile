@@ -5,6 +5,7 @@ COPY --chown=root:root --chmod=644 \
 	files/vscode.gpg files/vscode.repo \
 	/tmp/
 COPY --chown=root:root --chmod=644 files/policy.json /etc/containers/policy.json
+COPY --chown=root:root --chmod=644 files/ghcr.io.yaml /etc/containers/registries.d/ghcr.io.yaml
 
 RUN sed -i 's/enabled = no/enabled = yes/' /usr/lib/ostree/prepare-root.conf && \
 	rpm --import /tmp/tailscale.gpg /tmp/vscode.gpg && \
@@ -18,8 +19,7 @@ RUN dnf -y install \
 	helix \
 	nu \
 	tailscale \
-	&& \
-    dnf clean all && \
+	&& dnf clean all && \
     systemctl enable tailscaled && \
     ostree container commit
 
