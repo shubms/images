@@ -30,13 +30,13 @@ jobs:
       matrix:
         include:
           - image: custom-blue
-            file: bootc/customblue/Containerfile
+            dir: bootc/customblue
           # - image: custom-box
-          #   file: boxes/custom/Containerfile
+          #   dir: boxes/custom
           # - image: spotify-box
-          #   file: boxes/spotify/Containerfile
+          #   dir: boxes/spotify
           # - image: steam-box
-          #   file: boxes/steam/Containerfile
+          #   dir: boxes/steam
 
     steps:
       - name: Checkout repository
@@ -64,8 +64,8 @@ jobs:
         id: buildah
         uses: redhat-actions/buildah-build@v2
         with:
-          push: true
-          containerfiles: ${{ matrix.file }}
+          containerfiles: ${{ matrix.dir }}/Containerfile
+          context: ${{ matrix.dir }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -81,7 +81,7 @@ jobs:
 
       - name: Write secrets
         run: |
-          sudo mkdir $SECRETS_DIR
+          sudo mkdir $SECRETS_DIR;
           echo "$COSIGN_PRIVATE_KEY" | sudo tee $SECRETS_DIR/key;
           echo "$COSIGN_PASSWORD" | sudo tee $SECRETS_DIR/pass;
 
