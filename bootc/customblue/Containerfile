@@ -1,6 +1,10 @@
 FROM quay.io/fedora/fedora-silverblue:41
 
-COPY --chown=root:root --chmod=644 files/tailscale.gpg files/tailscale.repo files/vscode.gpg files/vscode.repo /tmp/
+COPY --chown=root:root --chmod=644 \
+	files/tailscale.gpg files/tailscale.repo \
+	files/vscode.gpg files/vscode.repo \
+	/tmp/
+COPY --chown=root:root --chmod=644 files/policy.json /etc/containers/policy.json
 
 RUN sed -i 's/enabled = no/enabled = yes/' /usr/lib/ostree/prepare-root.conf && \
 	rpm --import /tmp/tailscale.gpg /tmp/vscode.gpg && \
