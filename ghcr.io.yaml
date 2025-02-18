@@ -1,0 +1,3 @@
+docker:
+  ghcr.io/shubms:
+    use-sigstore-attachments: true
