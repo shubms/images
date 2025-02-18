@@ -42,6 +42,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Write registries.d to enable sigstore attachments
+        run: |
+          sudo cp ghcr.yaml /etc/containers/registries.d/
+
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
