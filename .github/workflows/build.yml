@@ -4,6 +4,7 @@ env:
   REGISTRY: ghcr.io
   REPO: ${{ github.repository_owner }}
   TOKEN: ${{ github.token }}
+  SECRETS_DIR: /run/secrets
 
 on:
   push:
@@ -72,15 +73,17 @@ jobs:
         uses: bitwarden/sm-action@v2
         with:
           access_token: ${{ secrets.BWS_TOKEN }}
-          base_url: https://vault.bitwarden.eu
+          cloud_region: eu
+          # base_url: https://vault.bitwarden.eu
           secrets: |
             3200b4c5-5543-4f22-83b2-b24000e08512 > COSIGN_PRIVATE_KEY
             c86c21ea-98cf-4ca9-b730-b2400146a3a5 > COSIGN_PASSWORD
 
       - name: Write secrets
         run: |
-          echo "$COSIGN_PRIVATE_KEY" > $XDG_RUNTIME_DIR/key;
-          echo "$COSIGN_PASSWORD" > $XDG_RUNTIME_DIR/pass;
+          sudo mkdir $SECRETS_DIR
+          echo "$COSIGN_PRIVATE_KEY" | sudo tee $SECRETS_DIR/key;
+          echo "$COSIGN_PASSWORD" | sudo tee $SECRETS_DIR/pass;
 
       - name: Push To ${{ env.REGISTRY }}
         id: push-to-quay
@@ -92,8 +95,8 @@ jobs:
           username: ${{ env.REPO }}
           password: ${{ env.TOKEN }}
           extra-args: |
-            --sign-by-sigstore-private-key=$XDG_RUNTIME_DIR/key
-            --sign-passphrase-file=$XDG_RUNTIME_DIR/pass
+            --sign-by-sigstore-private-key=$SECRETS_DIR/key
+            --sign-passphrase-file=$SECRETS_DIR/pass
 
       - name: Cleanup old images
         uses: actions/delete-package-versions@v5
