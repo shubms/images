@@ -1,4 +1,4 @@
-name: Build, Publish and Sign Container Images
+name: Weekly Build, Publish and Sign Container Images
 
 env:
   REGISTRY: ghcr.io
@@ -11,10 +11,10 @@ on:
     branches:
       - main
     paths:
-      - .github/workflows/build.yml
+      - .github/workflows/weekly.yml
       - "**/Containerfile"
   schedule:
-    - cron: "17 17 * * *"
+    - cron: "17 17 * * 0"
   workflow_dispatch:
 
 jobs:
@@ -30,16 +30,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: custom-blue
-            dir: bootc/customblue
           # - image: custom-box
           #   dir: boxes/custom
           # - image: comfy-box
           #   dir: boxes/comfy
-          # - image: spotify-box
-          #   dir: boxes/spotify
-          # - image: steam-box
-          #   dir: boxes/steam
+          - image: spotify-box
+            dir: boxes/spotify
+          - image: steam-box
+            dir: boxes/steam
 
     steps:
       - name: Checkout repository
@@ -90,8 +88,8 @@ jobs:
       - name: Write secrets
         run: |
           sudo mkdir ${{ env.SECRETS_DIR }};
-          echo "$COSIGN_PRIVATE_KEY" | sudo tee ${{ env.SECRETS_DIR }}/key;
-          echo "$COSIGN_PASSWORD" | sudo tee ${{ env.SECRETS_DIR }}/pass;
+          echo "$COSIGN_PRIVATE_KEY" | sudo tee ${{ env.SECRETS_DIR }}/key > /dev/null;
+          echo "$COSIGN_PASSWORD" | sudo tee ${{ env.SECRETS_DIR }}/pass > /dev/null;
 
       - name: Push To ${{ env.REGISTRY }}
         id: push-to-quay
