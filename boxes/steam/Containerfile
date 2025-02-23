@@ -2,7 +2,9 @@ FROM quay.io/toolbx/arch-toolbox:latest
 
 LABEL name="steam-box"
 
-RUN pacman -Syu --noconfirm \
+RUN printf "[multilib]\nInclude = /etc/pacman.d/mirrorlist" \
+    >> /etc/pacman.conf && \
+    pacman -Syu --noconfirm \
     lib32-vulkan-mesa-layers \
     lib32-vulkan-radeon \
     lib32-mangohud \
