@@ -1,0 +1,106 @@
+name: Daily Build, Publish and Sign Container Images
+
+env:
+  REGISTRY: ghcr.io
+  REPO: ${{ github.repository_owner }}
+  TOKEN: ${{ github.token }}
+  SECRETS_DIR: /run/secrets
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/daily.yml
+      - "**/Containerfile"
+  schedule:
+    - cron: "17 17 * * *"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: custom-blue
+            dir: bootc/customblue
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Write registries.d to enable sigstore attachments
+        run: |
+          sudo mkdir --parents /etc/containers/registries.d/
+          sudo cp bootc/customblue/files/ghcr.io.yaml /etc/containers/registries.d/
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.REPO }}/${{ matrix.image }}
+          tags: |
+            latest
+            type=sha,format=long
+            type=schedule,pattern={{date 'YYYYMMDD'}}
+
+      - name: Log into ${{ env.REGISTRY }}
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.REPO }}
+          password: ${{ env.TOKEN }}
+
+      - name: Buildah image
+        id: buildah
+        uses: redhat-actions/buildah-build@v2
+        with:
+          containerfiles: ${{ matrix.dir }}/Containerfile
+          context: ${{ matrix.dir }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Get Secrets
+        uses: bitwarden/sm-action@v2
+        with:
+          access_token: ${{ secrets.BWS_TOKEN }}
+          cloud_region: eu
+          # base_url: https://vault.bitwarden.eu
+          secrets: |
+            3200b4c5-5543-4f22-83b2-b24000e08512 > COSIGN_PRIVATE_KEY
+            c86c21ea-98cf-4ca9-b730-b2400146a3a5 > COSIGN_PASSWORD
+
+      - name: Write secrets
+        run: |
+          sudo mkdir ${{ env.SECRETS_DIR }};
+          echo "$COSIGN_PRIVATE_KEY" | sudo tee ${{ env.SECRETS_DIR }}/key > /dev/null;
+          echo "$COSIGN_PASSWORD" | sudo tee ${{ env.SECRETS_DIR }}/pass > /dev/null;
+
+      - name: Push To ${{ env.REGISTRY }}
+        id: push-to-quay
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.buildah.outputs.image }}
+          tags: ${{ steps.buildah.outputs.tags }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.REPO }}
+          password: ${{ env.TOKEN }}
+          extra-args: |
+            --sign-by-sigstore-private-key=${{ env.SECRETS_DIR }}/key
+            --sign-passphrase-file=${{ env.SECRETS_DIR }}/pass
+
+      - name: Cleanup old images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ matrix.image }}
+          package-type: container
+          min-versions-to-keep: 30

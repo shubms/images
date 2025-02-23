@@ -15,18 +15,34 @@ RUN sed --in-place 's/enabled = no/enabled = yes/' \
 	rm -f /tmp/tailscale.gpg /tmp/tailscale.repo /tmp/vscode.gpg /tmp/vscode.repo
 
 RUN dnf --assumeyes install \
-	code \
+	# CLI
 	dua-cli \
 	helix \
+	htop \
+	iotop-c \
+	nvtop \
+	papirus-icon-theme \
+	profile-sync-daemon \
 	tailscale \
 	xonsh \
+	# Devel
+	code \
+	podman-compose \
+	podman-docker \
+	podman-tui \
 	# Fonts
 	cascadia-fonts-all \
 	default-fonts \
 	jetbrains-mono-fonts-all \
 	liberation-fonts-all \
+	# Gnome
+	gnome-shell-extension-appindicator \
+	gnome-shell-extension-argos \
+	gnome-shell-extension-caffeine \
+	gnome-shell-extension-gsconnect \
+	# Cleanup
 	&& dnf clean all && \
-    systemctl enable tailscaled && \
-    ostree container commit
+	systemctl enable tailscaled && \
+	ostree container commit
 
 RUN bootc container lint
