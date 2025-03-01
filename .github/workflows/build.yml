@@ -1,4 +1,4 @@
-name: Weekly Build, Publish and Sign Container Images
+name: Build, Publish and Sign Container Images
 
 env:
   REGISTRY: ghcr.io
@@ -11,10 +11,10 @@ on:
     branches:
       - main
     paths:
-      - .github/workflows/weekly.yml
+      - .github/workflows/build.yml
       - "**/Containerfile"
   schedule:
-    - cron: "17 17 * * 0"
+    - cron: "17 17 * * 0" # Runs at 17:17, only on Sunday
   workflow_dispatch:
 
 jobs:
@@ -34,6 +34,8 @@ jobs:
           #   dir: boxes/custom
           # - image: comfy-box
           #   dir: boxes/comfy
+          - image: silverblue
+            dir: bootc/silverblue
           - image: spotify-box
             dir: boxes/spotify
           - image: steam-box
@@ -46,7 +48,7 @@ jobs:
       - name: Write registries.d to enable sigstore attachments
         run: |
           sudo mkdir --parents /etc/containers/registries.d/
-          sudo cp bootc/customblue/files/ghcr.io.yaml /etc/containers/registries.d/
+          sudo cp files/ghcr.io.yaml /etc/containers/registries.d/
 
       - name: Extract metadata (tags, labels)
         id: meta
