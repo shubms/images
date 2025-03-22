@@ -1,0 +1,66 @@
+ARG FEDORA_RELEASE=41
+
+FROM quay.io/fedora/fedora-silverblue:${FEDORA_RELEASE}
+
+ARG FEDORA_RELEASE
+
+COPY --chown=root:root --chmod=644 files/policy.json /etc/containers/policy.json
+COPY --chown=root:root --chmod=644 files/ghcr.io.yaml /etc/containers/registries.d/ghcr.io.yaml
+
+RUN sed --in-place 's/enabled = no/enabled = true/' \
+	/usr/lib/ostree/prepare-root.conf && \
+	printf 'fastestmirror=True\nmax_parallel_downloads=8' >> /etc/dnf/dnf.conf && \
+	printf '[brave-browser]\nname=Brave Browser\nenabled=1\ngpgcheck=1\ngpgkey=https://brave-browser-rpm-release.s3.brave.com/brave-core.asc\nbaseurl=https://brave-browser-rpm-release.s3.brave.com/$basearch' | tee /etc/yum.repos.d/brave.repo > /dev/null && \
+	printf '[tailscale-stable]\nname=Tailscale stable\nbaseurl=https://pkgs.tailscale.com/stable/fedora/$basearch\nenabled=1\ntype=rpm\ngpgcheck=1\ngpgkey=https://pkgs.tailscale.com/stable/fedora/repo.gpg' | tee /etc/yum.repos.d/tailscale.repo > /dev/null && \
+	printf '[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\nautorefresh=1\ntype=rpm-md\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc' | tee /etc/yum.repos.d/vscode.repo > /dev/null && \
+	mkdir --parents /usr/opt && \
+	ln --symbolic --force usr/opt /opt
+
+RUN dnf --assumeyes install \
+	https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_RELEASE}.noarch.rpm \
+	&& \
+	dnf --assumeyes remove \
+	firefox \
+	&& \
+	dnf --assumeyes upgrade && \
+	dnf --assumeyes install --allowerasing \
+	# CLI
+	distrobox \
+	dua-cli \
+	fish \
+	helix \
+	htop \
+	iotop-c \
+	nvtop \
+	# GUI
+	brave-browser \
+	breeze-cursor-theme \
+	ffmpeg \
+	mesa-va-drivers-freeworld \
+	mesa-vdpau-drivers-freeworld \
+	papirus-icon-theme \
+	pipewire-codec-aptx \
+	tailscale \
+	# Devel
+	code \
+	podman-compose \
+	podman-docker \
+	podman-tui \
+	# Fonts
+	cascadia-fonts-all \
+	default-fonts \
+	liberation-fonts-all \
+	# Gnome
+	gnome-shell-extension-appindicator \
+	gnome-shell-extension-argos \
+	gnome-shell-extension-caffeine \
+	gnome-shell-extension-gsconnect \
+	&& \
+	# Systemd
+	systemctl enable tailscaled.service && \
+	# Cleanup
+	dnf clean all && \
+	rm -frv /var/* && \
+	ostree container commit
+
+RUN bootc container lint

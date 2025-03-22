@@ -14,7 +14,7 @@ on:
       - .github/workflows/build.yml
       - "**/Containerfile"
   schedule:
-    - cron: "17 17 * * 0" # Runs at 17:17, only on Sunday
+    - cron: "17 17 * * 3,6" # Runs at 17:17, only on Wednesday and Saturday
   workflow_dispatch:
 
 jobs:
@@ -30,18 +30,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - image: custom-box
-          #   dir: boxes/custom
-          # - image: comfy-box
-          #   dir: boxes/comfy
-          - image: silverblue
-            dir: bootc/silverblue
-          - image: spotify-box
-            dir: boxes/spotify
-          - image: steam-box
-            dir: boxes/steam
+          - image: illumi
+            dir: bootc/illumi
 
     steps:
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          large-packages: false
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -50,7 +48,7 @@ jobs:
           sudo mkdir --parents /etc/containers/registries.d/
           sudo cp files/ghcr.io.yaml /etc/containers/registries.d/
 
-      - name: Extract metadata (tags, labels)
+      - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -89,12 +87,12 @@ jobs:
 
       - name: Write secrets
         run: |
-          sudo mkdir ${{ env.SECRETS_DIR }};
+          sudo mkdir --parents ${{ env.SECRETS_DIR }};
           echo "$COSIGN_PRIVATE_KEY" | sudo tee ${{ env.SECRETS_DIR }}/key > /dev/null;
           echo "$COSIGN_PASSWORD" | sudo tee ${{ env.SECRETS_DIR }}/pass > /dev/null;
 
       - name: Push To ${{ env.REGISTRY }}
-        id: push-to-quay
+        id: push-image
         uses: redhat-actions/push-to-registry@v2
         with:
           image: ${{ steps.buildah.outputs.image }}
