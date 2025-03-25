@@ -46,6 +46,7 @@ RUN dnf --assumeyes install \
 	podman-compose \
 	podman-docker \
 	podman-tui \
+	virt-manager \
 	# Fonts
 	cascadia-fonts-all \
 	default-fonts \
