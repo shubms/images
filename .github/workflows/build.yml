@@ -14,7 +14,7 @@ on:
       - .github/workflows/build.yml
       - "**/Containerfile"
   schedule:
-    - cron: "17 17 * * 3,6" # Runs at 17:17, only on Wednesday and Saturday
+    - cron: "17 17 * * *" # Runs at 17:17
   workflow_dispatch:
 
 jobs:
